@@ -47,6 +47,7 @@ import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.color.*;
 import java.awt.image.*;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,7 +109,9 @@ public class PSDImageReaderTest extends ImageReaderAbstractTest<PSDImageReader> 
                 // CMYK, uncompressed + contains some uncommon MeSa (instead of 8BIM) resource blocks
                 new TestData(getClassLoaderResource("/psd/fruit-cmyk-MeSa-resource.psd"), new Dimension(400, 191)),
                 // 3 channel, RGB, 32 bit samples
-                new TestData(getClassLoaderResource("/psd/32bit5x5.psd"), new Dimension(5, 5))
+                new TestData(getClassLoaderResource("/psd/32bit5x5.psd"), new Dimension(5, 5)),
+                // 3 channel, RGB, written by GIMP, compressed with PackBits runs longer than the row length
+                new TestData(getClassLoaderResource("/psd/gimp-32x32-packbits-overflow.psd"), new Dimension(32, 32))
                 // TODO: Need more recent ZIP compressed PSD files from CS2/CS3+
         );
     }
@@ -694,6 +697,30 @@ public class PSDImageReaderTest extends ImageReaderAbstractTest<PSDImageReader> 
             assertRGBEquals("RGB differ at (4,4)", 0xff888888, image.getRGB(4, 4), 4);
         }
     }
+
+    @Test(timeout = 1000)
+    public void testBrokenPackBitsThrowsEOFException() throws IOException {
+        PSDImageReader imageReader = createReader();
+
+        try (ImageInputStream stream = ImageIO.createImageInputStream(getClassLoaderResource("/broken-psd/short-packbits.psd"))) {
+            imageReader.setInput(stream);
+
+            assertEquals(1, imageReader.getNumImages(true));
+
+            assertEquals(427, imageReader.getWidth(0));
+            assertEquals(107, imageReader.getHeight(0));
+
+            try {
+                imageReader.read(0);
+
+                fail("Expected EOFException, is the test broken?");
+            }
+            catch (EOFException expected) {
+                assertTrue(expected.getMessage().contains("PackBits"));
+            }
+        }
+    }
+
 
     final static class FakeCMYKColorSpace extends ColorSpace {
         FakeCMYKColorSpace() {

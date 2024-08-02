@@ -4,13 +4,13 @@
     <parent>
         <groupId>com.twelvemonkeys</groupId>
         <artifactId>twelvemonkeys</artifactId>
-        <version>3.10.0-SNAPSHOT</version>
+        <version>3.11.1-SNAPSHOT</version>
     </parent>
     <groupId>com.twelvemonkeys.contrib</groupId>
     <artifactId>contrib</artifactId>
     <name>TwelveMonkeys :: Contrib</name>
     <description>
-      Contributions to TwelveMonkeys which are not matching into the ImageIO plug-ins.
+      Contributions to TwelveMonkeys and code that doesn't fit anywhere else.
     </description>
 
     <dependencies>
@@ -69,4 +69,13 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

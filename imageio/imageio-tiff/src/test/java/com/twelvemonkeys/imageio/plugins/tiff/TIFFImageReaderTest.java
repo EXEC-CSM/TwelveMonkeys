@@ -88,6 +88,7 @@ public class TIFFImageReaderTest extends ImageReaderAbstractTest<TIFFImageReader
                 new TestData(getClassLoaderResource("/tiff/quad-lzw.tif"), new Dimension(512, 384)), // RGB, Old spec (reversed) LZW compressed, tiled
                 new TestData(getClassLoaderResource("/tiff/bali.tif"), new Dimension(725, 489)), // Palette-based, LZW compressed
                 new TestData(getClassLoaderResource("/tiff/f14.tif"), new Dimension(640, 480)), // Gray, uncompressed
+                new TestData(getClassLoaderResource("/tiff/house.tif"), new Dimension(512, 512)), // Gray + extra sample, uncompressed
                 new TestData(getClassLoaderResource("/tiff/marbles.tif"), new Dimension(1419, 1001)), // RGB, LZW compressed w/predictor
                 new TestData(getClassLoaderResource("/tiff/lzw-full-12-bit-table.tif"), new Dimension(874, 1240)), // Gray, LZW compressed, w/predictor
                 new TestData(getClassLoaderResource("/tiff/chifley_logo.tif"), new Dimension(591, 177)), // CMYK, uncompressed
@@ -104,6 +105,8 @@ public class TIFFImageReaderTest extends ImageReaderAbstractTest<TIFFImageReader
                 new TestData(getClassLoaderResource("/tiff/signed-integral-8bit.tif"), new Dimension(439, 167)), // Gray, 8 bit *signed* integral
                 new TestData(getClassLoaderResource("/tiff/floatingpoint-16bit.tif"), new Dimension(151, 151)), // RGB, 16 bit floating point
                 new TestData(getClassLoaderResource("/tiff/floatingpoint-32bit.tif"), new Dimension(300, 100)), // RGB, 32 bit floating point
+                new TestData(getClassLoaderResource("/tiff/floatingpoint-64bit.tif"), new Dimension(64, 46)), // Gray, 64 bit floating point
+                new TestData(getClassLoaderResource("/tiff/shapes_lzw_predictor3.tif"), new Dimension(128, 72)), // RGB, 32 bit floating point, LZW w/predictor
                 new TestData(getClassLoaderResource("/tiff/general-cmm-error.tif"), new Dimension(1181, 860)), // RGB, LZW compression with broken/incompatible ICC profile
                 new TestData(getClassLoaderResource("/tiff/lzw-rgba-padded-icc.tif"), new Dimension(19, 11)), // RGBA, LZW compression with padded ICC profile
                 new TestData(getClassLoaderResource("/tiff/lzw-rgba-4444.tif"), new Dimension(64, 64)), // RGBA, LZW compression with UINT 4/4/4/4 + gray 2/2
@@ -980,6 +983,27 @@ public class TIFFImageReaderTest extends ImageReaderAbstractTest<TIFFImageReader
             reader.setInput(stream);
             TIFFStreamMetadata streamMetadata = (TIFFStreamMetadata) reader.getStreamMetadata();
             assertEquals(ByteOrder.BIG_ENDIAN, streamMetadata.byteOrder);
+        }
+    }
+
+    @Test
+    public void testReadRasterGeotiff() throws IOException {
+        ImageReader reader = createReader();
+        try (ImageInputStream stream = ImageIO.createImageInputStream(getClassLoaderResource("/tiff/geotiff.tif"))) {
+            reader.setInput(stream);
+            Raster rawRaster = reader.readRaster(0, null);
+            float[][] rawSquare = new float[][]{
+                    {6.577552E37f, 7.7754113E37f, 2.7962851E38f, 2.47137E38f, 2.0926236E38f},
+                    {3.2861367E38f, 2.6394106E38f, 2.455175E38f, 5.1006574E37f, 2.1506686E38f},
+                    {2.2375272E38f, 5.031465E37f, 1.8041708E38f, 2.9073664E38f, 2.2908213E38f},
+                    {1.255763E38f, 4.7818833E37f, 1.3102714E38f, 1.2462358E38f, 1.812381E36f},
+                    {1.5521211E38f, 1.5415674E38f, 2.8042234E38f, 1.0238707E38f, 1.5704234E38f},
+            };
+            for (int x = 0; x < rawSquare.length; x++) {
+                for (int y = 0; y < rawSquare[x].length; y++) {
+                    assertEquals(rawSquare[x][y], rawRaster.getSampleFloat(x, y, 0), 0.0001);
+                }
+            }
         }
     }
 

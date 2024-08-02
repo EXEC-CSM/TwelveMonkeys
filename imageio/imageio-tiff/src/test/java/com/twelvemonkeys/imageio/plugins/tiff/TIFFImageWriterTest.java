@@ -34,6 +34,7 @@ import com.twelvemonkeys.imageio.metadata.Directory;
 import com.twelvemonkeys.imageio.metadata.Entry;
 import com.twelvemonkeys.imageio.metadata.tiff.Rational;
 import com.twelvemonkeys.imageio.metadata.tiff.TIFF;
+import com.twelvemonkeys.imageio.metadata.tiff.TIFFEntry;
 import com.twelvemonkeys.imageio.metadata.tiff.TIFFReader;
 import com.twelvemonkeys.imageio.stream.ByteArrayImageInputStream;
 import com.twelvemonkeys.imageio.util.ImageTypeSpecifiers;
@@ -73,6 +74,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.twelvemonkeys.imageio.metadata.tiff.TIFF.TAG_X_RESOLUTION;
+import static com.twelvemonkeys.imageio.metadata.tiff.TIFF.TAG_Y_RESOLUTION;
 import static com.twelvemonkeys.imageio.plugins.tiff.TIFFImageMetadataFormat.SUN_NATIVE_IMAGE_METADATA_FORMAT_NAME;
 import static com.twelvemonkeys.imageio.plugins.tiff.TIFFImageMetadataTest.createTIFFFieldNode;
 import static com.twelvemonkeys.imageio.util.ImageReaderAbstractTest.assertRGBEquals;
@@ -133,8 +136,8 @@ public class TIFFImageWriterTest extends ImageWriterAbstractTest<TIFFImageWriter
             customMeta.appendChild(ifd);
 
             createTIFFFieldNode(ifd, TIFF.TAG_RESOLUTION_UNIT, TIFF.TYPE_SHORT, resolutionUnitValue);
-            createTIFFFieldNode(ifd, TIFF.TAG_X_RESOLUTION, TIFF.TYPE_RATIONAL, resolutionValue);
-            createTIFFFieldNode(ifd, TIFF.TAG_Y_RESOLUTION, TIFF.TYPE_RATIONAL, resolutionValue);
+            createTIFFFieldNode(ifd, TAG_X_RESOLUTION, TIFF.TYPE_RATIONAL, resolutionValue);
+            createTIFFFieldNode(ifd, TAG_Y_RESOLUTION, TIFF.TYPE_RATIONAL, resolutionValue);
 
             metadata.mergeTree(nativeFormat, customMeta);
 
@@ -153,11 +156,11 @@ public class TIFFImageWriterTest extends ImageWriterAbstractTest<TIFFImageWriter
         assertNotNull(resolutionUnit);
         assertEquals(resolutionUnitValue, ((Number) resolutionUnit.getValue()).intValue());
 
-        Entry xResolution = ifds.getEntryById(TIFF.TAG_X_RESOLUTION);
+        Entry xResolution = ifds.getEntryById(TAG_X_RESOLUTION);
         assertNotNull(xResolution);
         assertEquals(resolutionValue, xResolution.getValue());
 
-        Entry yResolution = ifds.getEntryById(TIFF.TAG_Y_RESOLUTION);
+        Entry yResolution = ifds.getEntryById(TAG_Y_RESOLUTION);
         assertNotNull(yResolution);
         assertEquals(resolutionValue, yResolution.getValue());
     }
@@ -272,11 +275,11 @@ public class TIFFImageWriterTest extends ImageWriterAbstractTest<TIFFImageWriter
         assertNotNull(resolutionUnit);
         assertEquals(resolutionUnitValue, ((Number) resolutionUnit.getValue()).intValue());
 
-        Entry xResolution = ifds.getEntryById(TIFF.TAG_X_RESOLUTION);
+        Entry xResolution = ifds.getEntryById(TAG_X_RESOLUTION);
         assertNotNull(xResolution);
         assertEquals(expectedResolutionValue, xResolution.getValue());
 
-        Entry yResolution = ifds.getEntryById(TIFF.TAG_Y_RESOLUTION);
+        Entry yResolution = ifds.getEntryById(TAG_Y_RESOLUTION);
         assertNotNull(yResolution);
         assertEquals(expectedResolutionValue, yResolution.getValue());
     }
@@ -1301,6 +1304,79 @@ public class TIFFImageWriterTest extends ImageWriterAbstractTest<TIFFImageWriter
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    public void testWriteBinaryWhiteIsZero() throws IOException {
+        IndexColorModel whiteIsZero = new IndexColorModel(1, 2, new int[] {-1, 0}, 0, false, -1, DataBuffer.TYPE_BYTE);
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_BYTE_BINARY, whiteIsZero);
+
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ImageOutputStream output = ImageIO.createImageOutputStream(bytes)) {
+            ImageWriter imageWriter = createWriter();
+            imageWriter.setOutput(output);
+            imageWriter.write(image);
+        }
+
+        Directory directory = new TIFFReader().read(new ByteArrayImageInputStream(bytes.toByteArray()));
+
+        assertNotNull(directory.getEntryById(TIFF.TAG_PHOTOMETRIC_INTERPRETATION));
+        assertEquals(TIFFBaseline.PHOTOMETRIC_WHITE_IS_ZERO, directory.getEntryById(TIFF.TAG_PHOTOMETRIC_INTERPRETATION).getValue());
+    }
+
+    @Test
+    public void testWriteBinaryBlackIsZero() throws IOException {
+        IndexColorModel blackIsZero = new IndexColorModel(1, 2, new int[] {0, -1}, 0, false, -1, DataBuffer.TYPE_BYTE);
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_BYTE_BINARY, blackIsZero);
+
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ImageOutputStream output = ImageIO.createImageOutputStream(bytes)) {
+            ImageWriter imageWriter = createWriter();
+            imageWriter.setOutput(output);
+            imageWriter.write(image);
+        }
+
+        Directory directory = new TIFFReader().read(new ByteArrayImageInputStream(bytes.toByteArray()));
+
+        assertNotNull(directory.getEntryById(TIFF.TAG_PHOTOMETRIC_INTERPRETATION));
+        assertEquals(TIFFBaseline.PHOTOMETRIC_BLACK_IS_ZERO, directory.getEntryById(TIFF.TAG_PHOTOMETRIC_INTERPRETATION).getValue());
+    }
+
+    @Test
+    public void testWriteBinaryPalette() throws IOException {
+        IndexColorModel redAndBluePalette = new IndexColorModel(1, 2, new int[] {0xFF00FF00, 0xFF0000FF}, 0, false, -1, DataBuffer.TYPE_BYTE);
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_BYTE_BINARY, redAndBluePalette);
+
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ImageOutputStream output = ImageIO.createImageOutputStream(bytes)) {
+            ImageWriter imageWriter = createWriter();
+            imageWriter.setOutput(output);
+            imageWriter.write(image);
+        }
+
+        Directory directory = new TIFFReader().read(new ByteArrayImageInputStream(bytes.toByteArray()));
+
+        assertNotNull(directory.getEntryById(TIFF.TAG_PHOTOMETRIC_INTERPRETATION));
+        assertEquals(TIFFBaseline.PHOTOMETRIC_PALETTE, directory.getEntryById(TIFF.TAG_PHOTOMETRIC_INTERPRETATION).getValue());
+    }
+
+    @Test
+    public void testWriteJPEGCompressedShouldNotPassMetadata() throws IOException {
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);
+
+        try (ImageOutputStream output = new NullImageOutputStream()) {
+            ImageWriter imageWriter = createWriter();
+            imageWriter.setOutput(output);
+
+            ImageWriteParam param = imageWriter.getDefaultWriteParam();
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionType("JPEG");
+
+            // From #815
+            // Prior to fix, this would throw IIOException: Metadata components != number of destination bands
+            // (empty metadata defaults to 1 channel gray, while image data is 3 channel BGR)
+            imageWriter.write(null, new IIOImage(image, null, new TIFFImageMetadata()), param);
         }
     }
 

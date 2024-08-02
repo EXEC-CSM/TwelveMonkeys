@@ -3,13 +3,16 @@
     <parent>
         <groupId>com.twelvemonkeys</groupId>
         <artifactId>twelvemonkeys</artifactId>
-        <version>3.10.0-SNAPSHOT</version>
+        <version>3.11.1-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.twelvemonkeys.servlet</groupId>
     <artifactId>servlet</artifactId>
     <name>TwelveMonkeys :: Servlet</name>
+    <description>
+        TwelveMonkeys Servlet support classes.
+    </description>
 
     <dependencies>
 
@@ -51,7 +54,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.4.2</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -65,9 +68,14 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <id>jakarta</id>
